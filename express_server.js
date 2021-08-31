@@ -26,6 +26,8 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {};
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -78,6 +80,18 @@ app.get("/register", (req,res) => {
     longURL: urlDatabase[req.params.shortURL]
   };
   res.render("urls_register", templateVars);
+});
+
+app.post("/register", (req, res) => {
+  const loginInfo = {
+    id: generateRandomString(),
+    email: req.body.email,
+    password: req.body.password
+  };
+  users[loginInfo.id] = loginInfo;
+  res.cookie("user_id", loginInfo.id);
+  console.log(users);
+  res.redirect("/urls");
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
