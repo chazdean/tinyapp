@@ -38,14 +38,15 @@ app.get("/urls.json", (req,res) => {
 
 app.get("/urls", (req,res) => {
   const templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
     urls: urlDatabase
   };
   res.render("urls_index", templateVars);
+  console.log(users);
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const templateVars = { user: users[req.cookies["user_id"]] };
   res.render("urls_new", templateVars);
 });
 
@@ -63,7 +64,7 @@ app.get("/u/:shortURL", (req, res) => {
 app.get("/urls/:shortURL", (req,res) => {
   if (urlDatabase[req.params.shortURL]) {
     const templateVars = {
-      username: req.cookies["username"],
+      user: users[req.cookies["user_id"]],
       shortURL: req.params.shortURL,
       longURL: urlDatabase[req.params.shortURL]
     };
@@ -75,7 +76,7 @@ app.get("/urls/:shortURL", (req,res) => {
 
 app.get("/register", (req,res) => {
   const templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL]
   };
@@ -83,6 +84,18 @@ app.get("/register", (req,res) => {
 });
 
 app.post("/register", (req, res) => {
+  if (!req.body.email || !req.body.password) {
+    //error msg
+    console.log("STOP");
+  }
+  
+  for (const user in users) {
+    console.log("HERE IT IS", user);
+    if (users[user].email === req.body.email) {
+      //error msg
+      console.log('Username already taken');
+    }
+  }
   const loginInfo = {
     id: generateRandomString(),
     email: req.body.email,
@@ -110,7 +123,7 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+  res.clearCookie("user_id");
   res.redirect("/urls");
 });
 
