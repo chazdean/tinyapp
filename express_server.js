@@ -21,6 +21,15 @@ const generateRandomString = () => {
   return randomString;
 };
 
+//return null
+const emailLookup = (email) => {
+  for (const user in users) {
+    if (users[user].email === email) {
+      return true;
+    }
+  }
+};
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -83,28 +92,30 @@ app.get("/register", (req,res) => {
   res.render("urls_register", templateVars);
 });
 
-app.post("/register", (req, res) => {
-  if (!req.body.email || !req.body.password) {
-    //error msg
-    console.log("STOP");
-  }
+app.get("/login", (req, res) => {
   
-  for (const user in users) {
-    console.log("HERE IT IS", user);
-    if (users[user].email === req.body.email) {
-      //error msg
-      console.log('Username already taken');
-    }
+  res.render("urls_login");
+});
+
+app.post("/register", (req, res) => {
+  //add .send() to status
+  //dont pass in hard variables
+  //dont use if else
+  if (!req.body.email || !req.body.password) {
+    res.sendStatus(400);
+  } else if (emailLookup(req.body.email)) {
+    res.sendStatus(400);
+  } else {
+    const loginInfo = {
+      id: generateRandomString(),
+      email: req.body.email,
+      password: req.body.password
+    };
+    users[loginInfo.id] = loginInfo;
+    res.cookie("user_id", loginInfo.id);
+    console.log(users);
+    res.redirect("/urls");
   }
-  const loginInfo = {
-    id: generateRandomString(),
-    email: req.body.email,
-    password: req.body.password
-  };
-  users[loginInfo.id] = loginInfo;
-  res.cookie("user_id", loginInfo.id);
-  console.log(users);
-  res.redirect("/urls");
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
