@@ -31,6 +31,16 @@ const getUserByEmail = (email) => {
   return null;
 };
 
+const urlsForUser = (id) => {
+  const userUrls = {};
+  for (let url in urlDatabase) {
+    if (urlDatabase[url].userID === id) {
+      userUrls[url] = urlDatabase[url];
+    }
+  }
+  return userUrls;
+};
+
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
   i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
@@ -49,11 +59,12 @@ app.get("/urls.json", (req,res) => {
 app.get("/urls", (req,res) => {
   const templateVars = {
     user: users[req.cookies["user_id"]],
-    urls: urlDatabase
+    urls: urlsForUser(req.cookies["user_id"])
   };
   res.render("urls_index", templateVars);
   console.log(urlDatabase);
   console.log(users);
+  console.log(urlsForUser(req.cookies["user_id"]));
 });
 
 app.get("/urls/new", (req, res) => {
@@ -81,6 +92,15 @@ app.get("/urls/:shortURL", (req,res) => {
       shortURL: req.params.shortURL,
       longURL: urlDatabase[req.params.shortURL].longURL
     };
+
+    if (!req.cookies["user_id"]) {
+      return res.status(400).send('You are not logged in!');
+    }
+
+    if (urlDatabase[templateVars.shortURL].userID !== req.cookies["user_id"]) {
+      return res.status(400).send('This URL does not belong to you!');
+    }
+
     res.render("urls_show", templateVars);
   } else {
     res.sendStatus(404);
@@ -131,11 +151,28 @@ app.post("/register", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
+  const templateVars = {
+    user: users[req.cookies["user_id"]],
+    shortURL: req.params.shortURL,
+  };
+
+  if (urlDatabase[templateVars.shortURL].userID !== req.cookies["user_id"]) {
+    return res.status(400).send('This URL does not belong to you!');
+  }
+
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
 });
 
 app.post("/urls/:shortURL", (req, res) => {
+  const templateVars = {
+    user: users[req.cookies["user_id"]],
+    shortURL: req.params.shortURL,
+  };
+
+  if (urlDatabase[templateVars.shortURL].userID !== req.cookies["user_id"]) {
+    return res.status(400).send('This URL does not belong to you!');
+  }
   urlDatabase[req.params.shortURL] = req.body.longURL;
   res.redirect("/urls");
 });
