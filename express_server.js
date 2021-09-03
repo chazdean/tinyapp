@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -132,6 +133,7 @@ app.post("/register", (req, res) => {
 
   const email = req.body.email;
   const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
   const user = getUserByEmail(email);
   const id = generateRandomString();
 
@@ -143,7 +145,7 @@ app.post("/register", (req, res) => {
     return res.status(400).send('User already exisit');
   }
 
-  users[id] = {id, email, password};
+  users[id] = {id, email, hashedPassword};
 
   res.cookie("user_id", id);
   res.redirect("/urls");
@@ -178,9 +180,6 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  //add .send() to status
-  //dont pass in hard variables
-  //dont use if else
   const email = req.body.email;
   const password = req.body.password;
   const user = getUserByEmail(email);
@@ -189,7 +188,7 @@ app.post("/login", (req, res) => {
     return res.status(403).send("Account does not exist");
   }
 
-  if (user.password !== password) {
+  if (!bcrypt.compareSync(password, user.hashedPassword)) {
     return res.status(400).send("Incorrect Password");
   }
 
