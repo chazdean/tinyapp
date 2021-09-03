@@ -11,14 +11,16 @@
       </div>
     </div>
       <% if (!user) { %>
-        <div class="btn-group">
-        <form method="GET" action="/register"><button type="Edit" class="btn btn-light mr-1">Register</button></form>
-        <form method="GET" action="/login"><button type="Edit" class="btn btn-dark">Login</button></form>
-      </div>
-        <% } else { %>  
+    
+        <a class="nav-item nav-link " href="/login" style="color: white;">Login</a>
+        <a class="nav-item nav-link" href="/register" style="color: white;">Register</a>
+       
+      <% } else { %>  
           <div class="btn-group">
-            <form method="GET" action="/login"><button type="Edit" class="btn btn-dark">Logout</button></form>
-            Logged In As: <%= user.email %>!
+            <span class="navbar-text mr-2">
+              <a class="nav-item" style="color: rgb(34, 32, 32);">Logged In As: <%= user.email %>!</a>
+            </span>
+            <form method="POST" action="/logout"><button type="Edit" class="btn btn-outline-dark">Logout</button></form>
           </div>
      <% } %>
   </nav>

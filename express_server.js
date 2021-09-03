@@ -22,12 +22,13 @@ const generateRandomString = () => {
 };
 
 //return null
-const emailLookup = (email) => {
+const getUserByEmail = (email) => {
   for (const user in users) {
     if (users[user].email === email) {
-      return true;
+      return users[user];
     }
   }
+  return null;
 };
 
 const urlDatabase = {
@@ -93,29 +94,37 @@ app.get("/register", (req,res) => {
 });
 
 app.get("/login", (req, res) => {
-  
-  res.render("urls_login");
+  const templateVars = {
+    user: users[req.cookies["user_id"]],
+    shortURL: req.params.shortURL,
+    longURL: urlDatabase[req.params.shortURL]
+  };
+  res.render("urls_login", templateVars);
 });
 
 app.post("/register", (req, res) => {
   //add .send() to status
   //dont pass in hard variables
   //dont use if else
-  if (!req.body.email || !req.body.password) {
-    res.sendStatus(400);
-  } else if (emailLookup(req.body.email)) {
-    res.sendStatus(400);
-  } else {
-    const loginInfo = {
-      id: generateRandomString(),
-      email: req.body.email,
-      password: req.body.password
-    };
-    users[loginInfo.id] = loginInfo;
-    res.cookie("user_id", loginInfo.id);
-    console.log(users);
-    res.redirect("/urls");
+
+  const email = req.body.email;
+  const password = req.body.password;
+  const user = getUserByEmail(email);
+  const id = generateRandomString();
+
+  if (!email || !password) {
+    return res.status(400).send('Username and Password cannot be blank');
   }
+
+  if (user) {
+    return res.status(400).send('User already exisit');
+  }
+
+  users[id] = {id, email, password};
+
+  res.cookie("user_id", id);
+  res.redirect("/urls");
+  
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
@@ -129,7 +138,22 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie("username", req.body.username);
+  //add .send() to status
+  //dont pass in hard variables
+  //dont use if else
+  const email = req.body.email;
+  const password = req.body.password;
+  const user = getUserByEmail(email);
+
+  if (!user) {
+    return res.status(403).send("Account does not exist");
+  }
+
+  if (user.password !== password) {
+    return res.status(400).send("Incorrect Password");
+  }
+
+  res.cookie("user_id", user.id);
   res.redirect("/urls");
 });
 
