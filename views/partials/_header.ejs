@@ -6,11 +6,12 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
       <div class="navbar-nav">
-        
+        <!-- Shows options based on if user is logged in -->
         <% if (user) { %> 
           <a class="nav-item nav-link" href="/urls">My URLs</a>
           <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
         <% } else { %> 
+          <!-- Modal pop-up to show login alert! -->
           <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
               <div class="modal-content">
@@ -32,14 +33,12 @@
           <a class="nav-item nav-link" data-toggle="modal" data-target="#exampleModal">My URLs</a>
           <a class="nav-item nav-link" href="/login">Create New URL</a>
         <% } %>
-
       </div>
     </div>
+      <!-- Shows options based on if user is logged out -->
       <% if (!user) { %>
-    
         <a class="nav-item nav-link " href="/login" style="color: white;">Login</a>
         <a class="nav-item nav-link" href="/register" style="color: white;">Register</a>
-       
       <% } else { %>  
           <div class="btn-group">
             <span class="navbar-text mr-2">
