@@ -1,8 +1,9 @@
+const { getUserByEmail } = require('./helpers');
 const express = require("express");
 const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const app = express();
-const PORT = 8080; // default port 8080
+const PORT = 8080;
 
 app.set("view engine", "ejs");
 
@@ -27,16 +28,6 @@ const generateRandomString = () => {
     i++;
   }
   return randomString;
-};
-
-//return null
-const getUserByEmail = (email, userDatabase) => {
-  for (const user in userDatabase) {
-    if (userDatabase[user].email === email) {
-      return userDatabase[user];
-    }
-  }
-  return null;
 };
 
 const urlsForUser = (id) => {
