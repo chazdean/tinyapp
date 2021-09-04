@@ -1,5 +1,5 @@
 const express = require("express");
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const app = express();
 const PORT = 8080; // default port 8080
@@ -9,7 +9,14 @@ app.set("view engine", "ejs");
 const bodyParser = require("body-parser");
 const { render } = require("ejs");
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
+
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1'],
+
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
 
 const generateRandomString = () => {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz123456789";
@@ -23,10 +30,10 @@ const generateRandomString = () => {
 };
 
 //return null
-const getUserByEmail = (email) => {
-  for (const user in users) {
-    if (users[user].email === email) {
-      return users[user];
+const getUserByEmail = (email, userDatabase) => {
+  for (const user in userDatabase) {
+    if (userDatabase[user].email === email) {
+      return userDatabase[user];
     }
   }
   return null;
@@ -59,23 +66,24 @@ app.get("/urls.json", (req,res) => {
 
 app.get("/urls", (req,res) => {
   const templateVars = {
-    user: users[req.cookies["user_id"]],
-    urls: urlsForUser(req.cookies["user_id"])
+    user: users[req.session.username],
+    urls: urlsForUser(req.session.username)
   };
   res.render("urls_index", templateVars);
   console.log(urlDatabase);
   console.log(users);
-  console.log(urlsForUser(req.cookies["user_id"]));
+  console.log("cookie is ", req.session.username);
+  console.log(urlsForUser(req.session.username));
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { user: users[req.cookies["user_id"]] };
+  const templateVars = { user: users[req.session.username] };
   res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => {
   const randomString = generateRandomString();
-  const userID = req.cookies["user_id"];
+  const userID = req.session.username;
 
   urlDatabase[randomString] = { longURL: req.body.longURL, userID };
   res.redirect(`urls/${randomString}`);
@@ -89,16 +97,16 @@ app.get("/u/:shortURL", (req, res) => {
 app.get("/urls/:shortURL", (req,res) => {
   if (urlDatabase[req.params.shortURL]) {
     const templateVars = {
-      user: users[req.cookies["user_id"]],
+      user: users[req.session.username],
       shortURL: req.params.shortURL,
       longURL: urlDatabase[req.params.shortURL].longURL
     };
 
-    if (!req.cookies["user_id"]) {
+    if (!req.session.username) {
       return res.status(400).send('You are not logged in!');
     }
 
-    if (urlDatabase[templateVars.shortURL].userID !== req.cookies["user_id"]) {
+    if (urlDatabase[templateVars.shortURL].userID !== req.session.username) {
       return res.status(400).send('This URL does not belong to you!');
     }
 
@@ -110,7 +118,7 @@ app.get("/urls/:shortURL", (req,res) => {
 
 app.get("/register", (req,res) => {
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session.username],
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL]
   };
@@ -119,7 +127,7 @@ app.get("/register", (req,res) => {
 
 app.get("/login", (req, res) => {
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session.username],
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL]
   };
@@ -134,7 +142,7 @@ app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password, 10);
-  const user = getUserByEmail(email);
+  const user = getUserByEmail(email, users);
   const id = generateRandomString();
 
   if (!email || !password) {
@@ -147,7 +155,7 @@ app.post("/register", (req, res) => {
 
   users[id] = {id, email, hashedPassword};
 
-  res.cookie("user_id", id);
+  req.session.username = id;
   res.redirect("/urls");
   
 });
@@ -158,7 +166,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
     shortURL: req.params.shortURL,
   };
 
-  if (urlDatabase[templateVars.shortURL].userID !== req.cookies["user_id"]) {
+  if (urlDatabase[templateVars.shortURL].userID !== req.session.username) {
     return res.status(400).send('This URL does not belong to you!');
   }
 
@@ -168,11 +176,11 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 app.post("/urls/:shortURL", (req, res) => {
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session.username],
     shortURL: req.params.shortURL,
   };
 
-  if (urlDatabase[templateVars.shortURL].userID !== req.cookies["user_id"]) {
+  if (urlDatabase[templateVars.shortURL].userID !== req.session.username) {
     return res.status(400).send('This URL does not belong to you!');
   }
   urlDatabase[req.params.shortURL] = req.body.longURL;
@@ -182,7 +190,7 @@ app.post("/urls/:shortURL", (req, res) => {
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  const user = getUserByEmail(email);
+  const user = getUserByEmail(email, users);
 
   if (!user) {
     return res.status(403).send("Account does not exist");
@@ -192,13 +200,13 @@ app.post("/login", (req, res) => {
     return res.status(400).send("Incorrect Password");
   }
 
-  res.cookie("user_id", user.id);
+  req.session.username = user.id;
   res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
-  res.redirect("/urls");
+  req.session = null;
+  res.redirect("/login");
 });
 
 app.listen(PORT, () => {
